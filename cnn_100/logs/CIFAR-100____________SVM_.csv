@@ -1,0 +1,11 @@
+Model,Total Epochs,Epochs to ≥90% Acc,Epoch of Best Acc,Best Val Acc (%),Avg Val Acc (Last 5),Avg Val Loss (Last 5)
+ViT-B_16_224,50,—,45,89.49,89.37,0.6263
+ViT-L_16_224,30,—,29,89.31,89.1,0.6536
+ResNet50,350,—,349,79.7,79.56,0.8595
+PreActResNet50,350,—,348,79.03,78.93,0.9061
+PreActResNet18,350,—,344,77.64,77.45,0.9279
+PreActResNet50Small,350,—,341,75.21,74.95,1.1331
+VGG19,300,—,238,68.0,67.68,2.4731
+VGG16,300,—,235,67.11,66.8,2.3432
+SimpleCNN,300,—,228,65.06,64.85,1.3089
+BoVW + LinearSVC,—,—,—,29.41,—,—
