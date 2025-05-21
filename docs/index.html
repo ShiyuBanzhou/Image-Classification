@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基于CIFAR数据集的物品分类研究</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px; 
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px; 
+            max-height: 380px;
+        }
+        @media (min-width: 768px) { /* md breakpoint */
+            .chart-container {
+                height: 380px;
+                max-height: 420px;
+            }
+        }
+        .active-nav {
+            border-bottom-width: 2px;
+            border-color: #0284c7; /* sky-600 */
+            color: #0369a1; /* sky-700 */
+            font-weight: 600;
+        }
+        .nav-item {
+            padding: 0.75rem 1rem; /* Increased padding */
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+            border-bottom-width: 2px;
+            border-color: transparent;
+            color: #4b5563; /* gray-600 */
+        }
+        .nav-item:hover {
+            background-color: #f0f9ff; /* sky-50 */
+            color: #0ea5e9; /* sky-500 */
+        }
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.25em 1.25em;
+            padding-right: 2.75rem;
+        }
+        h2 {
+            border-bottom-color: #e5e7eb; /* gray-300 */
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-700">
+    <header class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-sky-700 py-5 text-center">基于CIFAR数据集的物品分类研究</h1>
+            <nav class="flex flex-wrap justify-center border-b border-gray-200 text-sm sm:text-base">
+                <a onclick="showSection('overview')" class="nav-item active-nav" id="nav-overview">项目概览</a>
+                <a onclick="showSection('cifar10_results')" class="nav-item" id="nav-cifar10_results">CIFAR-10结果</a>
+                <a onclick="showSection('cifar100_results')" class="nav-item" id="nav-cifar100_results">CIFAR-100结果</a>
+                <a onclick="showSection('comparison')" class="nav-item" id="nav-comparison">性能对比</a>
+                <a onclick="showSection('hyperparams')" class="nav-item" id="nav-hyperparams">超参数参考</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <section id="overview" class="space-y-8 my-8">
+            <h2 class="text-2xl font-semibold text-sky-600 border-b pb-3 mb-6">项目概览</h2>
+            <p class="text-lg leading-relaxed text-slate-600">本项目旨在使用不同的机器学习和深度学习模型对 CIFAR-10 和 CIFAR-100 数据集进行物品分类研究。我们实现并评估了多种经典的卷积神经网络（CNN）架构，如SimpleCNN, VGG, ResNet, PreActResNet，以及前沿的Vision Transformer (ViT) 模型。此外，还包括一个基于传统视觉词袋（BoVW）和支持向量机（SVM）的基线方法作为对比。项目提供了完整的训练脚本、预训练模型、结果日志以及一个图形用户界面（GUI）用于便捷地进行图像分类演示。</p>
+            
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-semibold text-indigo-600 mb-3">研究背景</h3>
+                <p class="leading-relaxed text-slate-600">物品分类是计算机视觉领域的一项基础任务，旨在根据图像中包含的物体将其归类到某个预定义类别中。选题动机源于物体分类作为计算机视觉领域的基础任务，其在推动人工智能应用发展中扮演了重要角色。通过研究物体分类，可以探索更高效的算法和更鲁棒的模型，为实现智能化场景理解提供技术支持。物品分类的应用场景包括智能安防、自动驾驶、电商平台、医疗影像分析等。</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-semibold text-indigo-600 mb-4">数据集</h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-sky-50 p-4 rounded-lg border border-sky-200">
+                        <h4 class="text-lg font-medium text-sky-700">CIFAR-10</h4>
+                        <p class="mt-1 text-slate-600">包含10个类别的共60000张32x32彩色图像，每个类别6000张（5万训练，1万测试）。</p>
+                        <p class="mt-1 text-sm text-slate-500">类别：飞机, 汽车, 鸟, 猫, 鹿, 狗, 青蛙, 马, 船, 卡车。</p>
+                    </div>
+                    <div class="bg-sky-50 p-4 rounded-lg border border-sky-200">
+                        <h4 class="text-lg font-medium text-sky-700">CIFAR-100</h4>
+                        <p class="mt-1 text-slate-600">包含100个细粒度类别，共60000张32x32彩色图像，每个类别600张。100个类别被分为20个超类。</p>
+                        <p class="mt-1 text-sm text-slate-500">分类难度更高，需要模型具备更强的细粒度特征区分能力。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="cifar10_results" class="hidden space-y-8 my-8">
+            <h2 class="text-2xl font-semibold text-sky-600 border-b pb-3 mb-6">CIFAR-10 模型结果</h2>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <label for="model_select_cifar10" class="block text-sm font-medium text-slate-700 mb-1">选择模型:</label>
+                <select id="model_select_cifar10" onchange="updateModelCharts('cifar10')" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg shadow-sm">
+                </select>
+            </div>
+            <div id="model_info_cifar10" class="bg-white p-6 rounded-xl shadow-lg space-y-4">
+                <h3 id="model_name_cifar10" class="text-xl font-semibold text-indigo-600">选择一个模型查看详情</h3>
+                <p id="model_desc_cifar10" class="text-slate-600 leading-relaxed"></p>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="chart-container bg-slate-50 p-3 border border-gray-200 rounded-lg"><canvas id="cifar10_loss_chart"></canvas></div>
+                    <div class="chart-container bg-slate-50 p-3 border border-gray-200 rounded-lg"><canvas id="cifar10_acc_chart"></canvas></div>
+                </div>
+                <div id="model_metrics_cifar10" class="text-sm text-slate-600 pt-2 border-t border-gray-200"></div>
+            </div>
+        </section>
+
+        <section id="cifar100_results" class="hidden space-y-8 my-8">
+            <h2 class="text-2xl font-semibold text-sky-600 border-b pb-3 mb-6">CIFAR-100 模型结果</h2>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <label for="model_select_cifar100" class="block text-sm font-medium text-slate-700 mb-1">选择模型:</label>
+                <select id="model_select_cifar100" onchange="updateModelCharts('cifar100')" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg shadow-sm">
+                </select>
+            </div>
+            <div id="model_info_cifar100" class="bg-white p-6 rounded-xl shadow-lg space-y-4">
+                <h3 id="model_name_cifar100" class="text-xl font-semibold text-indigo-600">选择一个模型查看详情</h3>
+                <p id="model_desc_cifar100" class="text-slate-600 leading-relaxed"></p>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="chart-container bg-slate-50 p-3 border border-gray-200 rounded-lg"><canvas id="cifar100_loss_chart"></canvas></div>
+                    <div class="chart-container bg-slate-50 p-3 border border-gray-200 rounded-lg"><canvas id="cifar100_acc_chart"></canvas></div>
+                </div>
+                <div id="model_metrics_cifar100" class="text-sm text-slate-600 pt-2 border-t border-gray-200"></div>
+            </div>
+        </section>
+
+        <section id="comparison" class="hidden space-y-10 my-8">
+            <h2 class="text-2xl font-semibold text-sky-600 border-b pb-3 mb-6">性能对比分析</h2>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-semibold text-indigo-600 mb-3 text-center">CIFAR-10 各模型最高验证准确率</h3>
+                <div class="chart-container bg-slate-50 p-3 border border-gray-200 rounded-lg"><canvas id="cifar10_comparison_chart"></canvas></div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-semibold text-indigo-600 mb-3 text-center">CIFAR-100 各模型最高验证准确率</h3>
+                <div class="chart-container bg-slate-50 p-3 border border-gray-200 rounded-lg"><canvas id="cifar100_comparison_chart"></canvas></div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xl font-semibold text-indigo-600 mb-3 text-center">CIFAR-10 vs CIFAR-100 准确率对比</h3>
+                <div class="chart-container" style="max-width: 800px; height: 450px; max-height:500px;"><canvas id="cifar_combined_comparison_chart"></canvas></div>
+            </div>
+             <div class="bg-white p-6 rounded-xl shadow-lg mt-8">
+                <h3 class="text-xl font-semibold text-indigo-600 mb-4">主要结论总结</h3>
+                <ul class="list-disc list-inside space-y-2 text-slate-600 leading-relaxed">
+                    <li>传统BoVW+SVM方法性能远低于深度学习模型。</li>
+                    <li>CNN架构中，残差结构（ResNet系列）显著优于VGG和SimpleCNN。预激活（PreActResNet）通常能带来更快的收敛和略好的性能。</li>
+                    <li>增加网络深度和通道数通常能提升性能，但存在收益递减且对超参数更敏感。</li>
+                    <li>Vision Transformer (ViT) 模型（尤其预训练后微调）在两个数据集上均表现最佳，显示出强大潜力。</li>
+                    <li>所有模型在更复杂的CIFAR-100数据集上表现均有所下降。</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="hyperparams" class="hidden my-8">
+            <h2 class="text-2xl font-semibold text-sky-600 border-b pb-3 mb-6">超参数参考 (CIFAR-10)</h2>
+            <div class="overflow-x-auto bg-white shadow-xl rounded-lg">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-sky-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-sky-800 uppercase tracking-wider">模型</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-sky-800 uppercase tracking-wider">轮数</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-sky-800 uppercase tracking-wider">批大小</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-sky-800 uppercase tracking-wider">优化器</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-sky-800 uppercase tracking-wider">学习率</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-sky-800 uppercase tracking-wider">权重衰减</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-sky-800 uppercase tracking-wider">调度器</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200 text-sm text-slate-600">
+                        <tr><td class="px-6 py-4 whitespace-nowrap">SimpleCNN</td><td class="px-6 py-4">50</td><td class="px-6 py-4">128</td><td class="px-6 py-4">Adam</td><td class="px-6 py-4">0.001</td><td class="px-6 py-4">0.0001</td><td class="px-6 py-4">ReduceLROnPlateau</td></tr>
+                        <tr><td class="px-6 py-4 whitespace-nowrap">VGG16</td><td class="px-6 py-4">200</td><td class="px-6 py-4">128</td><td class="px-6 py-4">SGD</td><td class="px-6 py-4">0.01</td><td class="px-6 py-4">0.0005</td><td class="px-6 py-4">CosineAnnealingLR</td></tr>
+                        <tr><td class="px-6 py-4 whitespace-nowrap">VGG19</td><td class="px-6 py-4">200</td><td class="px-6 py-4">128</td><td class="px-6 py-4">SGD</td><td class="px-6 py-4">0.01</td><td class="px-6 py-4">0.0005</td><td class="px-6 py-4">CosineAnnealingLR</td></tr>
+                        <tr><td class="px-6 py-4 whitespace-nowrap">ResNet50</td><td class="px-6 py-4">200</td><td class="px-6 py-4">128</td><td class="px-6 py-4">SGD</td><td class="px-6 py-4">0.1</td><td class="px-6 py-4">0.0005</td><td class="px-6 py-4">CosineAnnealingLR</td></tr>
+                        <tr><td class="px-6 py-4 whitespace-nowrap">PreActResNet18</td><td class="px-6 py-4">150</td><td class="px-6 py-4">128</td><td class="px-6 py-4">SGD</td><td class="px-6 py-4">0.1</td><td class="px-6 py-4">0.0005</td><td class="px-6 py-4">CosineAnnealingLR</td></tr>
+                        <tr><td class="px-6 py-4 whitespace-nowrap">PreActResNet50</td><td class="px-6 py-4">150</td><td class="px-6 py-4">128</td><td class="px-6 py-4">SGD</td><td class="px-6 py-4">0.1</td><td class="px-6 py-4">0.0005</td><td class="px-6 py-4">CosineAnnealingLR</td></tr>
+                        <tr><td class="px-6 py-4 whitespace-nowrap">PreActResNet50Small</td><td class="px-6 py-4">150</td><td class="px-6 py-4">128</td><td class="px-6 py-4">SGD</td><td class="px-6 py-4">0.1</td><td class="px-6 py-4">0.0005</td><td class="px-6 py-4">CosineAnnealingLR</td></tr>
+                        <tr><td class="px-6 py-4 whitespace-nowrap">ViT-B_16_224</td><td class="px-6 py-4">50</td><td class="px-6 py-4">64</td><td class="px-6 py-4">AdamW</td><td class="px-6 py-4">3e-5</td><td class="px-6 py-4">0.01</td><td class="px-6 py-4">StepLR (step=10, gamma=0.5)</td></tr>
+                        <tr><td class="px-6 py-4 whitespace-nowrap">ViT-L_16_224</td><td class="px-6 py-4">30</td><td class="px-6 py-4">16</td><td class="px-6 py-4">AdamW</td><td class="px-6 py-4">1e-5</td><td class="px-6 py-4">0.01</td><td class="px-6 py-4">StepLR (step=8, gamma=0.5)</td></tr>
+                        <tr><td class="px-6 py-4 whitespace-nowrap">SVM (BoVW)</td><td class="px-6 py-4">N/A</td><td class="px-6 py-4">N/A</td><td class="px-6 py-4">N/A</td><td class="px-6 py-4">N/A</td><td class="px-6 py-4">N/A</td><td class="px-6 py-4">N/A</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="mt-4 text-sm text-slate-500 leading-relaxed">注：ViT模型训练时图像输入尺寸调整为224x224，其他CNN模型为32x32。详细超参数及调整建议请参考仓库内 `cnn_10/超参数.xlsx - 超参数.csv` 文件。</p>
+        </section>
+    </main>
+
+    <footer class="text-center py-10 mt-12 border-t border-slate-200">
+        <p class="text-slate-500 text-sm">&copy; 机器学习第四组</p>
+    </footer>
+
+    <script>
+        const sections = ['overview', 'cifar10_results', 'cifar100_results', 'comparison', 'hyperparams'];
+        const navLinks = {};
+        sections.forEach(id => navLinks[id] = document.getElementById(`nav-${id}`));
+
+        function showSection(sectionId) {
+            sections.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+                navLinks[id].classList.remove('active-nav', 'text-sky-700', 'font-semibold');
+                navLinks[id].classList.add('text-slate-600');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+            navLinks[sectionId].classList.add('active-nav', 'text-sky-700', 'font-semibold');
+            navLinks[sectionId].classList.remove('text-slate-600');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        const modelDescriptions = {
+            'SimpleCNN': '一个基础的CNN模型，包含3个卷积层（每个后接BN、ReLU、MaxPool）和2个全连接层（含Dropout）。适合快速原型验证。',
+            'VGG16': '经典的16层深度CNN架构（13卷积层，3全连接层），以其统一使用3x3卷积核堆叠来增加网络深度而闻名。',
+            'VGG19': 'VGG16的扩展版本，包含19个权重层（16卷积层，3全连接层），在VGG16的基础上于特定卷积块中增加了额外的卷积层。',
+            'ResNet50': '50层深的残差网络，采用Bottleneck构建块。通过引入跳跃连接（shortcut connections）有效解决了深度网络训练中的梯度消失问题。',
+            'PreActResNet18': '18层深的预激活（Pre-activation）ResNet变体。它将批归一化（BN）和ReLU激活函数置于卷积层之前，有助于改善梯度流和正则化效果。',
+            'PreActResNet50': '50层深的预激活ResNet，采用PreActBottleneck结构，同样将BN和ReLU前置。',
+            'PreActResNet50Small': 'PreActResNet50的一个通道数减少版本，旨在降低模型参数量和计算复杂度，同时试图保持较好的性能。',
+            'ViT-B_16_224': '基于Transformer架构的基础版Vision Transformer。它将输入图像（调整为224x224）分割成16x16的图像块（patches），并将这些块的线性嵌入序列输入Transformer编码器进行分类。',
+            'ViT-L_16_224': '更大规模的Vision Transformer，具有更多的Transformer层、更大的隐藏维度和更多的注意力头，能捕获更复杂的图像特征，但计算需求也更高。',
+            'SVM': '一种传统的机器学习方法，本项目中结合视觉词袋（Bag of Visual Words, BoVW）模型使用。首先从图像中提取局部特征，构建视觉词典，然后将图像表示为视觉词的直方图，最后使用线性支持向量机（LinearSVC）进行分类。'
+        };
+        
+        let charts = {
+            cifar10_loss: null, cifar10_acc: null,
+            cifar100_loss: null, cifar100_acc: null,
+            cifar10_comparison: null, cifar100_comparison: null,
+            cifar_combined_comparison: null
+        };
+
+        const allChartData = {
+            'cifar10': {
+                'SimpleCNN': { epochs: [1, 25, 50], trainLoss: [1.50, 0.54, 0.37], valLoss: [1.15, 0.54, 0.44], valAcc: [57.5, 81.5, 86.0], bestValAcc: 86.01, bestEpoch: 46 },
+                'VGG16': { epochs: [1, 100, 200], trainLoss: [2.21, 0.03, 0.0017], valLoss: [1.97, 0.48, 0.4373], valAcc: [25.5, 89.2, 91.47], bestValAcc: 91.62, bestEpoch: 159 },
+                'VGG19': { epochs: [1, 100, 200], trainLoss: [2.28, 0.038, 0.0017], valLoss: [2.12, 0.47, 0.4373], valAcc: [18.1, 89.4, 91.47], bestValAcc: 91.05, bestEpoch: 146 },
+                'ResNet50': { epochs: [1, 100, 200], trainLoss: [2.87,0.08,0.0018], valLoss: [2.08,0.32,0.1788], valAcc: [20.5,90.5,95.51], bestValAcc: 95.64, bestEpoch: 194 },
+                'PreActResNet18': { epochs: [1, 75, 150], trainLoss: [1.57,0.26,0.0019], valLoss: [1.44,0.36,0.1855], valAcc: [51.8,88.3,95.20], bestValAcc: 95.24, bestEpoch: 149 },
+                'PreActResNet50': { epochs: [1, 75, 150], trainLoss: [1.87,0.25,0.0075], valLoss: [1.45,0.28,0.2168], valAcc: [46.5,91.5,95.24], bestValAcc: 95.27, bestEpoch: 147 },
+                'PreActResNet50Small': { epochs: [1, 75, 150], trainLoss: [1.72,0.28,0.0026], valLoss: [1.40,0.27,0.2586], valAcc: [48.3,92.0,93.81], bestValAcc: 93.91, bestEpoch: 145 },
+                'ViT-B_16_224': { epochs: [1, 25, 50], trainLoss: [0.17,0.0009,0.0002], valLoss: [0.10,0.1176,0.1096], valAcc: [96.6,97.8,98.23], bestValAcc: 98.31, bestEpoch: 46 },
+                'ViT-L_16_224': { epochs: [1, 15, 30], trainLoss: [0.12,0.0024,0.0001], valLoss: [0.079,0.1095,0.1132], valAcc: [97.3,97.8,98.31], bestValAcc: 98.31, bestEpoch: 30 },
+            },
+            'cifar100': {
+                'SimpleCNN': { epochs: [1, 150, 300], trainLoss: [3.84, 1.48, 0.87], valLoss: [3.41, 1.47, 1.31], valAcc: [18.3, 59.7, 64.8], bestValAcc: 65.06, bestEpoch: 228 },
+                'VGG16': { epochs: [1, 150, 300], trainLoss: [4.60,0.10,0.0041], valLoss: [4.60,2.27,2.3432], valAcc: [1.0,63.3,66.81], bestValAcc: 67.11, bestEpoch: 235 },
+                'VGG19': { epochs: [1, 150, 300], trainLoss: [4.60,0.25,0.0030], valLoss: [4.60,2.02,2.4731], valAcc: [1.0,63.5,67.68], bestValAcc: 68.00, bestEpoch: 238 },
+                'ResNet50': { epochs: [1, 175, 350], trainLoss: [4.88,0.59,0.0071], valLoss: [4.53,1.40,0.8595], valAcc: [2.1,63.8,79.56], bestValAcc: 79.70, bestEpoch: 349 },
+                'PreActResNet18': { epochs: [1, 175, 350], trainLoss: [3.95,0.57,0.0025], valLoss: [3.61,1.21,0.9279], valAcc: [13.8,71.4,77.45], bestValAcc: 77.64, bestEpoch: 344 },
+                'PreActResNet50': { epochs: [1, 175, 350], trainLoss: [4.21,0.54,0.0072], valLoss: [3.67,1.24,0.9061], valAcc: [12.8,69.1,78.93], bestValAcc: 79.03, bestEpoch: 348 },
+                'PreActResNet50Small': { epochs: [1, 175, 350], trainLoss: [3.96,0.62,0.0271], valLoss: [3.58,1.19,1.1331], valAcc: [14.3,70.9,74.95], bestValAcc: 75.21, bestEpoch: 341 },
+                'ViT-B_16_224': { epochs: [1, 25, 50], trainLoss: [1.25,0.0046,0.0006], valLoss: [0.57,0.5822,0.6308], valAcc: [84.3,88.7,89.37], bestValAcc: 89.49, bestEpoch: 45 },
+                'ViT-L_16_224': { epochs: [1, 15, 30], trainLoss: [0.84,0.0078,0.0008], valLoss: [0.46,0.5719,0.6658], valAcc: [86.4,88.5,89.11], bestValAcc: 89.31, bestEpoch: 29 },
+            }
+        };
+        const modelOrder = ['SimpleCNN', 'VGG16', 'VGG19', 'PreActResNet50Small', 'PreActResNet18', 'PreActResNet50', 'ResNet50', 'ViT-B_16_224', 'ViT-L_16_224', 'SVM'];
+        const modelOrderNoSVM = ['SimpleCNN', 'VGG16', 'VGG19', 'PreActResNet50Small', 'PreActResNet18', 'PreActResNet50', 'ResNet50', 'ViT-B_16_224', 'ViT-L_16_224'];
+
+        function populateModelSelect(datasetKey) {
+            const selectElement = document.getElementById(`model_select_${datasetKey}`);
+            selectElement.innerHTML = '<option value="">-- 选择模型 --</option>';
+            modelOrderNoSVM.forEach(modelName => {
+                if (allChartData[datasetKey] && allChartData[datasetKey][modelName]) {
+                    const option = document.createElement('option');
+                    option.value = modelName;
+                    option.textContent = modelName.replace(/_/g, ' ');
+                    selectElement.appendChild(option);
+                }
+            });
+        }
+        
+        function createLineChart(canvasId, labels, trainData, valData, yLabel, title) {
+            if (charts[canvasId]) charts[canvasId].destroy();
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: '训练' + yLabel, data: trainData, borderColor: 'rgba(54, 162, 235, 1)', backgroundColor: 'rgba(54, 162, 235, 0.2)', tension: 0.1, fill: false, borderWidth: 2 },
+                        { label: '验证' + yLabel, data: valData, borderColor: 'rgba(255, 99, 132, 1)', backgroundColor: 'rgba(255, 99, 132, 0.2)', tension: 0.1, fill: false, borderWidth: 2 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { title: { display: true, text: title, font: { size: 16, weight: '500' }, color: '#374151' }, legend: { labels: { font: { size: 12 }}}},
+                    scales: { 
+                        y: { beginAtZero: (yLabel.includes('准确率') ? false : true), title: { display: true, text: yLabel, font: {size: 12, weight: '500'}}, grid: { color: '#e5e7eb' } }, 
+                        x: { title: { display: true, text: '轮数 (Epochs)', font: {size: 12, weight: '500'}}, grid: { color: '#e5e7eb' } } 
+                    }
+                }
+            });
+        }
+
+        function updateModelCharts(datasetKey) {
+            const modelName = document.getElementById(`model_select_${datasetKey}`).value;
+            const modelNameDisplay = document.getElementById(`model_name_${datasetKey}`);
+            const modelDescDisplay = document.getElementById(`model_desc_${datasetKey}`);
+            const modelMetricsDisplay = document.getElementById(`model_metrics_${datasetKey}`);
+
+            if (!modelName) {
+                modelNameDisplay.textContent = '选择一个模型查看详情';
+                modelDescDisplay.textContent = '';
+                modelMetricsDisplay.innerHTML = '';
+                if (charts[`${datasetKey}_loss_chart`]) charts[`${datasetKey}_loss_chart`].destroy();
+                if (charts[`${datasetKey}_acc_chart`]) charts[`${datasetKey}_acc_chart`].destroy();
+                return;
+            }
+
+            const data = allChartData[datasetKey][modelName];
+            modelNameDisplay.textContent = modelName.replace(/_/g, ' ');
+            modelDescDisplay.textContent = modelDescriptions[modelName] || '暂无详细描述。';
+            
+            modelMetricsDisplay.innerHTML = `
+                <p class="text-slate-700"><strong class="font-medium text-slate-800">最高验证准确率:</strong> ${data.bestValAcc.toFixed(2)}% (在第 ${data.bestEpoch} 轮)</p>
+            `;
+
+            createLineChart(`${datasetKey}_loss_chart`, data.epochs, data.trainLoss, data.valLoss, '损失', `${modelName.replace(/_/g, ' ')} - 损失曲线`);
+            createLineChart(`${datasetKey}_acc_chart`, data.epochs, data.valAcc.map(v => v), data.valAcc, '准确率 (%)', `${modelName.replace(/_/g, ' ')} - 验证准确率`);
+        }
+
+        function createBarChart(canvasId, labels, data, yLabel, title, backgroundColors) {
+            if (charts[canvasId]) charts[canvasId].destroy();
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.map(l => l.replace(/_/g, ' ')),
+                    datasets: [{ label: yLabel, data: data, backgroundColor: backgroundColors || 'rgba(75, 192, 192, 0.7)', borderColor: backgroundColors ? backgroundColors.map(c => c.replace('0.7', '1').replace('0.8','1')) : 'rgba(75, 192, 192, 1)', borderWidth: 1, borderRadius: 4 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    indexAxis: 'y', 
+                    plugins: { 
+                        title: { display: true, text: title, font: { size: 16, weight: '500' }, color: '#374151' },
+                        legend: { display: false }
+                    },
+                    scales: { x: { beginAtZero: true, title: { display: true, text: yLabel, font: {size: 12, weight: '500'} }, grid: { color: '#e5e7eb' }  }, y: { grid: { display: false } } }
+                }
+            });
+        }
+        
+        function createGroupedBarChart(canvasId, labels, dataset1Name, data1, dataset2Name, data2, yLabel, title) {
+            if (charts[canvasId]) charts[canvasId].destroy();
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.map(l => l.replace(/_/g, ' ')),
+                    datasets: [
+                        { label: dataset1Name, data: data1, backgroundColor: 'rgba(54, 162, 235, 0.7)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1, borderRadius: 4 },
+                        { label: dataset2Name, data: data2, backgroundColor: 'rgba(255, 99, 132, 0.7)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1, borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { title: { display: true, text: title, font: {size: 16, weight: '500' }}, legend: { labels: { font: {size: 12}}}},
+                    scales: { y: { beginAtZero: true, title: { display: true, text: yLabel, font: {size: 12, weight: '500'}}, grid: { color: '#e5e7eb' } }, x: { grid: { display: false } } }
+                }
+            });
+        }
+
+        function initComparisonCharts() {
+            const cifar10Acc = modelOrder.map(m => allChartData.cifar10[m]?.bestValAcc || (m === 'SVM' ? 57.89 : 0));
+            const cifar100Acc = modelOrder.map(m => allChartData.cifar100[m]?.bestValAcc || (m === 'SVM' ? 29.41 : 0));
+            const barColors = [
+                'rgba(255, 99, 132, 0.7)','rgba(54, 162, 235, 0.7)','rgba(255, 206, 86, 0.7)', 
+                'rgba(75, 192, 192, 0.7)','rgba(153, 102, 255, 0.7)','rgba(255, 159, 64, 0.7)',
+                'rgba(107, 114, 128, 0.7)','rgba(239, 68, 68, 0.7)','rgba(59, 130, 246, 0.7)', 'rgba(16, 185, 129, 0.7)'
+            ];
+
+            createBarChart('cifar10_comparison_chart', modelOrder, cifar10Acc, '最高验证准确率 (%)', 'CIFAR-10 各模型性能对比', barColors);
+            createBarChart('cifar100_comparison_chart', modelOrder, cifar100Acc, '最高验证准确率 (%)', 'CIFAR-100 各模型性能对比', barColors);
+            createGroupedBarChart('cifar_combined_comparison_chart', modelOrder, 'CIFAR-10', cifar10Acc, 'CIFAR-100', cifar100Acc, '验证准确率 (%)', 'CIFAR-10 vs CIFAR-100 模型准确率对比');
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            populateModelSelect('cifar10');
+            populateModelSelect('cifar100');
+            initComparisonCharts();
+            showSection('overview'); 
+        });
+
+    </script>
+</body>
+</html>
